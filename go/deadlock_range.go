@@ -26,8 +26,10 @@ func main() {
       wg.Done()
       count++
       if (count == capacity) {
-        fmt.Printf("Closing channel\n")
-        close(messages)
+          fmt.Printf("Sent done, not closing channel\n")
+// Uncomment to fix this problem
+//        fmt.Printf("Closing channel\n")
+//        close(messages)
       }
     }(i)
   }

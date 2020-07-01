@@ -1,3 +1,4 @@
+// note that pong is not received
 package main
 
 import (
@@ -10,7 +11,7 @@ func main() {
 
   go func() {
     messages <- "ping"
-    messages <- "ping"
+    messages <- "pong"
   }()
 
   msg := <-messages
