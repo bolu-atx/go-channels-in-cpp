@@ -2,7 +2,7 @@
 // Created by Bo Lu on 6/28/20.
 //
 #pragma once
-#define VERSION2
+#define VERSION3
 
 #include <mutex>
 #include <condition_variable>
