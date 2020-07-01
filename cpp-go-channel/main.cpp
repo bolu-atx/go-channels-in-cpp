@@ -5,12 +5,36 @@
 #include <thread>
 #include <sstream>
 
-#include "Channel.h"
-#define MAIN_VERSION2
+#define MAIN_VERSION3
 
+#ifdef MAIN_VERSION3
+#include "MultiChannel.h"
+#else
+#include "Channel.h"
+#endif
+/* Common utility functions  */
 #define THREADSAFE(MESSAGE) \
         ( static_cast<std::ostringstream&>(std::ostringstream().flush() << MESSAGE).str())
 
+struct timer {
+    timer(const std::string& label)
+    {
+        m_label = label;
+        m_start = std::chrono::high_resolution_clock::now();
+    }
+    ~timer()
+    {
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>( end - m_start ).count();
+        std::cout << THREADSAFE(m_label << " took " << duration << " s.\n");
+    }
+
+    std::chrono::time_point<std::chrono::steady_clock> m_start;
+    std::string m_label;
+};
+
+
+// Version 1 - basic
 #ifdef MAIN_VERSION1
 int main() {
     std::cout << "Channel created.\n";
@@ -40,25 +64,8 @@ int main() {
 }
 #endif
 
+// verison 2 - with timing and 2 sends
 #ifdef MAIN_VERSION2
-
-struct timer {
-    timer(const std::string& label)
-    {
-        m_label = label;
-        m_start = std::chrono::high_resolution_clock::now();
-    }
-    ~timer()
-    {
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::seconds>( end - m_start ).count();
-        std::cout << THREADSAFE(m_label << " took " << duration << " s.\n");
-    }
-
-    std::chrono::time_point<std::chrono::steady_clock> m_start;
-    std::string m_label;
-};
-
 int main() {
     using namespace std::chrono_literals;
 
@@ -92,4 +99,42 @@ int main() {
     future.get();
     return 0;
 }
+#endif
+
+
+#ifdef MAIN_VERSION3
+
+int main() {
+    using namespace std::chrono;
+    std::cout << "Channel created.\n";
+    Channel<std::string> chan;
+
+    auto future = std::async(std::launch::async,
+                             [&chan](){
+                                 {
+                                     auto t = timer("send1");
+                                     std::cout << "Async about to send ping\n";
+                                     chan.send("ping");
+                                 }
+                                 std::cout << "Async ping sent, sending pong next\n";
+                                 chan.send("pong");
+                                 std::cout << "Async pong sent\n";
+                             });
+
+    {
+        auto t2 = timer("receive1");
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::cout << "Main thread about to call receive on channel:\n";
+        auto val = chan.receive_blocking();
+        std::cout << THREADSAFE("Got:" << val << std::endl);
+    }
+
+    std::cout << "Main thread about to call receive on channel:\n";
+    auto val = chan.receive_blocking();
+    std::cout << THREADSAFE("Got:" << val << std::endl);
+
+    future.get();
+    return 0;
+}
+
 #endif
