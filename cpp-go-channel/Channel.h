@@ -8,7 +8,7 @@
 #include <condition_variable>
 #include <deque>
 
-#ifdef VERSION1
+#ifdef VERSION1 // buggy, can only send/recieve once, not blocking
 template<class T>
 class Channel {
 public:
@@ -52,7 +52,7 @@ protected:
 };
 #endif
 
-#ifdef VERSION2
+#ifdef VERSION2 // send/receive one item at a time, send is nonblocking, receive is blocking
 template<class T>
 class Channel {
 public:
@@ -97,7 +97,7 @@ protected:
 #endif
 
 
-#ifdef VERSION2plus
+#ifdef VERSION2plus // proper single element Go channel implementation, synchronous
 template<class T>
 class Channel {
 public:
@@ -148,7 +148,7 @@ protected:
 };
 #endif
 
-#ifdef VERSION3
+#ifdef VERSION3 // multiple element Go channel, asynchronous
 template<class T>
 class Channel {
 public:
