@@ -2,10 +2,153 @@
 // Created by Bo Lu on 6/28/20.
 //
 #pragma once
+#define VERSION2
+
 #include <mutex>
 #include <condition_variable>
 #include <deque>
 
+#ifdef VERSION1 // buggy, can only send/recieve once, not blocking
+template<class T>
+class Channel {
+public:
+    Channel() {};
+    virtual ~Channel() {};
+
+protected:
+    Channel& operator=(const Channel& other ) = delete;
+    Channel(const Channel& other) = delete;
+
+public:
+    T receive_blocking()
+    {
+        std::unique_lock<std::mutex> the_lock(m_mutex);
+
+        m_cv.wait(the_lock, [this]
+            {
+            return m_has_value;
+        });
+
+        return m_val;
+    };
+    void send(T&& val)
+    {
+        {
+            std::unique_lock<std::mutex> the_lock(m_mutex);
+            m_val = val;
+            m_has_value = true;
+        }
+        m_cv.notify_all();
+    };
+
+    void close();
+
+protected:
+    T m_val;
+    bool m_has_value {false};
+
+    std::mutex m_mutex;
+    std::condition_variable m_cv;
+};
+#endif
+
+#ifdef VERSION2 // send/receive one item at a time, send is nonblocking, receive is blocking
+template<class T>
+class Channel {
+public:
+    Channel() {};
+    virtual ~Channel() {};
+
+protected:
+    Channel& operator=(const Channel& other ) = delete;
+    Channel(const Channel& other) = delete;
+
+public:
+    T receive_blocking()
+    {
+        std::unique_lock<std::mutex> the_lock(m_mutex);
+
+        m_cv.wait(the_lock, [this]
+        {
+            return m_has_value;
+        });
+
+        return m_val;
+    };
+    void send(T&& val)
+    {
+        {
+            std::unique_lock<std::mutex> the_lock(m_mutex);
+            m_val = val;
+            m_has_value = true;
+        }
+        m_cv.notify_all();
+    };
+
+    void close();
+
+protected:
+    T m_val;
+    bool m_has_value {false};
+
+    std::mutex m_mutex;
+    std::condition_variable m_cv;
+};
+#endif
+
+
+#ifdef VERSION2plus // proper single element Go channel implementation, synchronous
+template<class T>
+class Channel {
+public:
+    Channel() {};
+    virtual ~Channel() {};
+
+protected:
+    Channel& operator=(const Channel& other ) = delete;
+    Channel(const Channel& other) = delete;
+
+public:
+    T receive_blocking()
+    {
+        std::unique_lock<std::mutex> the_lock(m_mutex);
+        m_has_receiver = true;
+        m_cv.notify_all();
+
+        m_cv.wait(the_lock, [this]
+        {
+            return (m_has_receiver && m_has_value);
+        });
+
+        m_has_value = false;
+        m_has_receiver = false;
+        return std::move(m_val);
+    };
+    void send(T&& val)
+    {
+        std::unique_lock<std::mutex> the_lock(m_mutex);
+        m_cv.wait(the_lock, [this]
+        {
+            return (m_has_receiver && !m_has_value);
+        });
+        m_val = val;
+        m_has_value = true;
+        m_cv.notify_all();
+    };
+
+    void close();
+
+protected:
+    T m_val;
+    bool m_has_value {false};
+    bool m_has_receiver {false};
+
+    std::mutex m_mutex;
+    std::condition_variable m_cv;
+};
+#endif
+
+#ifdef VERSION3 // multiple element Go channel, asynchronous
 template<class T>
 class Channel {
 public:
@@ -23,7 +166,7 @@ public:
     T receive_blocking()
     {
         std::unique_lock<std::mutex> the_lock(m_mutex);
-        m_value_update.wait(the_lock, [this]
+        m_cv.wait(the_lock, [this]
         {
             return !is_empty() || !is_open();
         });
@@ -41,7 +184,7 @@ public:
         if (is_open())
         {
             m_data.emplace_back(val);
-            m_value_update.notify_all();
+            m_cv.notify_all();
         }
     };
 
@@ -61,7 +204,8 @@ protected:
 protected:
     std::deque<T> m_data;
     std::mutex m_mutex;
-    std::condition_variable m_value_update;
+    std::condition_variable m_cv;
     bool m_open {true};
 };
+#endif
 
