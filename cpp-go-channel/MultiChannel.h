@@ -7,7 +7,7 @@
 #include <condition_variable>
 #include <deque>
 
-template<class T>
+template<typename T>
 class Channel {
 public:
     Channel() {};
@@ -64,5 +64,6 @@ protected:
     std::mutex m_mutex;
     std::condition_variable m_cv;
     bool m_open {true};
+    size_t m_capacity;
 };
 

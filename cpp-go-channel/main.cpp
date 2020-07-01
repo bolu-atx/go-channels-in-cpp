@@ -105,36 +105,37 @@ int main() {
 #ifdef MAIN_VERSION3
 
 int main() {
-    using namespace std::chrono;
-    std::cout << "Channel created.\n";
     Channel<std::string> chan;
+    std::cout << "Channel created.\n";
+    const auto capacity = 5;
 
+    // kick off thread to send
     auto future = std::async(std::launch::async,
-                             [&chan](){
+                             [&chan, capacity](){
                                  {
-                                     auto t = timer("send1");
-                                     std::cout << "Async about to send ping\n";
-                                     chan.send("ping");
+                                     auto t = timer("send thread");
+                                     for (size_t i = 0; i < capacity; ++i)
+                                     {
+                                         std::cout << THREADSAFE("send thread: sending ping " << i << "\n");
+                                         if (i == 4)
+                                         {
+                                             std::this_thread::sleep_for(std::chrono::seconds(2));
+                                         }
+                                         chan.send(THREADSAFE("ping "<<i));
+                                     }
                                  }
-                                 std::cout << "Async ping sent, sending pong next\n";
-                                 chan.send("pong");
-                                 std::cout << "Async pong sent\n";
                              });
 
+    // receive
+    std::string val;
+    for (size_t i = 0; i < capacity; ++i)
     {
-        auto t2 = timer("receive1");
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-        std::cout << "Main thread about to call receive on channel:\n";
-        auto val = chan.receive_blocking();
-        std::cout << THREADSAFE("Got:" << val << std::endl);
+        std::cout << "main thread: calling receive:\n";
+        val = chan.receive_blocking();
+        std::cout << THREADSAFE("main thread: received " << val << std::endl);
     }
-
-    std::cout << "Main thread about to call receive on channel:\n";
-    auto val = chan.receive_blocking();
-    std::cout << THREADSAFE("Got:" << val << std::endl);
 
     future.get();
     return 0;
 }
-
 #endif
