@@ -29,7 +29,7 @@ struct timer {
         std::cout << THREADSAFE(m_label << " took " << duration << " s.\n");
     }
 
-    std::chrono::time_point<std::chrono::steady_clock> m_start;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
     std::string m_label;
 };
 
