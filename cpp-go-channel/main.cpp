@@ -107,7 +107,7 @@ int main() {
 int main() {
     Channel<std::string> chan;
     std::cout << "Channel created.\n";
-    const auto capacity = 5;
+    const auto capacity = 8;
 
     // kick off thread to send
     auto future = std::async(std::launch::async,
@@ -122,6 +122,7 @@ int main() {
                                              std::this_thread::sleep_for(std::chrono::seconds(2));
                                          }
                                          chan.send(THREADSAFE("ping "<<i));
+                                         std::cout << THREADSAFE("send thread: sending ping " << i << " done\n");
                                      }
                                  }
                              });
@@ -131,7 +132,7 @@ int main() {
     for (size_t i = 0; i < capacity; ++i)
     {
         std::cout << "main thread: calling receive:\n";
-        val = chan.receive_blocking();
+        val = chan.receive();
         std::cout << THREADSAFE("main thread: received " << val << std::endl);
     }
 
