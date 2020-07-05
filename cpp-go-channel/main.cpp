@@ -8,7 +8,8 @@
 #define MAIN_VERSION3
 
 #ifdef MAIN_VERSION3
-#include "MultiChannel.h"
+//#include "MultiChannel.h"
+#include "ChannelV2.h"
 #else
 #include "Channel.h"
 #endif
@@ -105,9 +106,10 @@ int main() {
 #ifdef MAIN_VERSION3
 
 int main() {
-    Channel<std::string> chan;
     std::cout << "Channel created.\n";
     const auto capacity = 8;
+    Channel<std::string> chan;
+    Channel<std::string, 8> chan2;
 
     // kick off thread to send
     auto future = std::async(std::launch::async,
