@@ -108,8 +108,8 @@ int main() {
 int main() {
     std::cout << "Channel created.\n";
     const auto capacity = 8;
-    Channel<std::string> chan;
-    Channel<std::string, 8> chan2;
+//    Channel<std::string> chan;
+    Channel<std::string, 3> chan;
 
     // kick off thread to send
     auto future = std::async(std::launch::async,
